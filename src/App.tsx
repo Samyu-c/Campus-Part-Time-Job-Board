@@ -10,6 +10,7 @@ import Fixtures from "./pages/Fixtures";
 import Teams from "./pages/Teams";
 import Stats from "./pages/Stats";
 import Grounds from "./pages/Grounds";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/teams" element={<Teams />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/grounds" element={<Grounds />} />
+          <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
