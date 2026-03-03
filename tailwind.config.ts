@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
@@ -51,17 +52,20 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        pitch: {
-          DEFAULT: "hsl(var(--pitch-green))",
-          light: "hsl(var(--pitch-green-light))",
+        campus: {
+          indigo: "hsl(var(--campus-indigo))",
+          "indigo-light": "hsl(var(--campus-indigo-light))",
+          teal: "hsl(var(--campus-teal))",
+          "teal-light": "hsl(var(--campus-teal-light))",
+          amber: "hsl(var(--campus-amber))",
+          "amber-light": "hsl(var(--campus-amber-light))",
+          rose: "hsl(var(--campus-rose))",
         },
-        gold: {
-          DEFAULT: "hsl(var(--gold))",
-          dark: "hsl(var(--gold-dark))",
+        score: {
+          high: "hsl(var(--score-high))",
+          mid: "hsl(var(--score-mid))",
+          low: "hsl(var(--score-low))",
         },
-        live: "hsl(var(--live-red))",
-        win: "hsl(var(--win-green))",
-        loss: "hsl(var(--loss-grey))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -95,12 +99,18 @@ export default {
           from: { opacity: "0", transform: "translateX(20px)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
+        "score-pop": {
+          "0%": { transform: "scale(0.8)", opacity: "0" },
+          "60%": { transform: "scale(1.1)" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.5s ease-out forwards",
         "slide-in-right": "slide-in-right 0.4s ease-out forwards",
+        "score-pop": "score-pop 0.4s ease-out forwards",
       },
     },
   },

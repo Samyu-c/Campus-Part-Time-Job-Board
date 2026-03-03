@@ -3,14 +3,16 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
-import Index from "./pages/Index";
-import Tournaments from "./pages/Tournaments";
-import Fixtures from "./pages/Fixtures";
-import Teams from "./pages/Teams";
-import Stats from "./pages/Stats";
-import Grounds from "./pages/Grounds";
-import Login from "./pages/Login";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { CampusNavbar } from "@/components/CampusNavbar";
+import CampusHome from "./pages/CampusHome";
+import CampusLogin from "./pages/CampusLogin";
+import Dashboard from "./pages/Dashboard";
+import GigBoard from "./pages/GigBoard";
+import GigDetail from "./pages/GigDetail";
+import MyApplications from "./pages/MyApplications";
+import MyGigs from "./pages/MyGigs";
+import DigitalPass from "./pages/DigitalPass";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,17 +23,20 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/tournaments" element={<Tournaments />} />
-          <Route path="/fixtures" element={<Fixtures />} />
-          <Route path="/teams" element={<Teams />} />
-          <Route path="/stats" element={<Stats />} />
-          <Route path="/grounds" element={<Grounds />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <CampusNavbar />
+          <Routes>
+            <Route path="/" element={<CampusHome />} />
+            <Route path="/login" element={<CampusLogin />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/gigs" element={<GigBoard />} />
+            <Route path="/gigs/:id" element={<GigDetail />} />
+            <Route path="/my-applications" element={<MyApplications />} />
+            <Route path="/my-gigs" element={<MyGigs />} />
+            <Route path="/digital-pass" element={<DigitalPass />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
