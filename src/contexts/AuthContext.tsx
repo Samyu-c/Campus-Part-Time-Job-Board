@@ -1,58 +1,80 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import { User, mockUsers } from "@/data/campusData";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
 interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => boolean;
-  signup: (name: string, email: string, password: string, role: "student" | "professor", department: string) => boolean;
-  logout: () => void;
+  user: any;
+  token: string | null;
   isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string, role: string, department: string) => Promise<void>;
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
 
-  const login = (email: string, _password: string): boolean => {
-    const found = mockUsers.find((u) => u.email === email);
-    if (found) {
-      setUser(found);
-      return true;
-    }
-    // Demo: accept any email, default to student
-    setUser({
-      id: "demo-" + Date.now(),
-      name: email.split("@")[0],
-      email,
-      role: "student",
-      department: "General",
-      bio: "Demo user",
-      skills: [],
-    });
-    return true;
+  // Base URL for your Mac Backend
+  const API_URL = "http://localhost:5001/api/auth";
+
+  const login = async (email, password) => {
+    const res = await axios.post(`${API_URL}/login`, { email, password });
+    const { token, user } = res.data;
+
+    // THE FIX: Physically save to the browser
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+
+    setToken(token);
+    setUser(user);
+    setIsAuthenticated(true);
   };
 
-  const signup = (name: string, email: string, _password: string, role: "student" | "professor", department: string): boolean => {
-    setUser({
-      id: "new-" + Date.now(),
-      name,
-      email,
-      role,
+ const signup = async (name, email, password, role, department) => {
+  try {
+    const res = await axios.post(`${API_URL}/register`, { 
+      name, 
+      email, 
+      password, 
+      role: role.toUpperCase(), 
       department,
-      bio: "",
-      skills: [],
+      // Change this: Ensure skills is a String, not an Array
+      skills: "" 
     });
-    return true;
-  };
+    
+    const { token, user } = res.data;
 
-  const logout = () => setUser(null);
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+
+    setToken(token);
+    setUser(user);
+    setIsAuthenticated(true);
+  } catch (error) {
+    console.error("Signup error:", error);
+    throw error;
+  }
+};
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  return context;
+};

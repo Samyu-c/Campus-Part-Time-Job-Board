@@ -1,158 +1,151 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Briefcase, FileText, Users, TrendingUp, ArrowRight, Brain, Shield } from "lucide-react";
+import { Briefcase, FileText, Users, Plus, Brain, AlertCircle, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockGigs, mockApplications, mockOutPasses } from "@/data/campusData";
-import { AIScoreBadge } from "@/components/AIScoreBadge";
-import { Link } from "react-router-dom";
+import axios from "axios";
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [allApplications, setAllApplications] = useState<any[]>([]);
+  const [myGigs, setMyGigs] = useState<any[]>([]); 
+  const [loading, setLoading] = useState(true);
+
+  const API_BASE = "http://localhost:5001/api";
 
   useEffect(() => {
-    if (!isAuthenticated) navigate("/login");
+    if (!isAuthenticated) { navigate("/login"); return; }
+    
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [appRes, gigRes] = await Promise.all([
+          axios.get(`${API_BASE}/applications`, { headers }),
+          axios.get(`${API_BASE}/jobs`)
+        ]);
+
+        const apps = Array.isArray(appRes.data) ? appRes.data : (appRes.data.applications || []);
+        const jobs = Array.isArray(gigRes.data.jobs) ? gigRes.data.jobs : (gigRes.data || []);
+        
+        setAllApplications(apps);
+        setMyGigs(jobs);
+      } catch (err) {
+        console.error("Dashboard Fetch Error:", err);
+      } finally { 
+        setLoading(false); 
+      }
+    };
+    fetchData();
   }, [isAuthenticated, navigate]);
 
-  if (!user) return null;
+  if (loading || !user) return <div className="p-20 text-center font-display animate-pulse text-primary">Syncing Dashboard...</div>;
 
-  const isStudent = user.role === "student";
+  const isStudent = user.role?.toUpperCase() === "STUDENT";
 
-  // Student stats
-  const myApps = mockApplications.filter((a) => a.studentId === user.id);
-  const myPasses = mockOutPasses.filter((p) => p.studentId === user.id);
+  // Counts and Filtering
+  const studentApps = allApplications.filter(a => String(a.studentId) === String(user.id));
+  const myPostedGigs = myGigs.filter(g => String(g.posterId) === String(user.id));
+  const myPostedIds = myPostedGigs.map(g => String(g.id));
+  const incomingAppsCount = allApplications.filter(a => myPostedIds.includes(String(a.jobId))).length;
 
-  // Professor stats
-  const myGigs = mockGigs.filter((g) => g.postedBy === user.id);
-  const gigsApps = mockApplications.filter((a) => myGigs.some((g) => g.id === a.gigId));
+  const stats = isStudent ? [
+    { label: "Applications", value: studentApps.length, icon: FileText, color: "text-primary" },
+    { label: "Avg AI Score", value: "85%", icon: Brain, color: "text-amber-500" }
+  ] : [
+    { label: "Your Gigs", value: myPostedGigs.length, icon: Briefcase, color: "text-primary" },
+    { label: "Applicants", value: incomingAppsCount, icon: Users, color: "text-blue-500" }
+  ];
 
-  const stats = isStudent
-    ? [
-        { label: "Applications", value: myApps.length, icon: FileText, color: "text-primary" },
-        { label: "Accepted", value: myApps.filter((a) => a.status === "Accepted").length, icon: TrendingUp, color: "text-accent" },
-        { label: "Avg AI Score", value: myApps.length ? Math.round(myApps.reduce((s, a) => s + a.matchScore, 0) / myApps.length) : 0, icon: Brain, color: "text-campus-amber" },
-        { label: "Passes", value: myPasses.length, icon: Shield, color: "text-primary" },
-      ]
-    : [
-        { label: "Posted Gigs", value: myGigs.length, icon: Briefcase, color: "text-primary" },
-        { label: "Total Applicants", value: gigsApps.length, icon: Users, color: "text-accent" },
-        { label: "Pending Review", value: gigsApps.filter((a) => a.status === "Pending").length, icon: FileText, color: "text-campus-amber" },
-        { label: "Avg AI Score", value: gigsApps.length ? Math.round(gigsApps.reduce((s, a) => s + a.matchScore, 0) / gigsApps.length) : 0, icon: Brain, color: "text-campus-rose" },
-      ];
+  const displayItems = isStudent ? studentApps : myPostedGigs;
+
+  // Manual Navigation Function
+  const handleCardClick = (item: any) => {
+    const targetId = isStudent ? item.jobId : item.id;
+    console.log("Navigating to Gig ID:", targetId); // Check your console!
+    if (targetId) {
+      navigate(`/gigs/${targetId}`);
+    } else {
+      console.error("No ID found for this item", item);
+    }
+  };
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
-      {/* Welcome */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="font-display text-3xl font-bold text-foreground">
-          Welcome, {user.name.split(" ")[0]} 👋
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          {isStudent ? "Track your applications and campus passes" : "Manage your gigs and review applicants"}
-        </p>
+    <div className="container mx-auto max-w-5xl px-4 py-8">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Welcome, {user.name?.split(" ")[0] || "User"} 👋</h1>
+          <p className="text-sm text-muted-foreground">Manage your campus opportunities</p>
+        </div>
+        {!isStudent && (
+          <button 
+            onClick={() => navigate("/post-gig")} 
+            className="bg-primary text-white px-6 py-3 rounded-2xl flex items-center gap-2 hover:opacity-90 shadow-lg shadow-primary/20 transition-all font-bold"
+          >
+            <Plus size={20}/> Post Gig
+          </button>
+        )}
       </motion.div>
 
-      {/* Stats */}
-      <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="gig-card flex items-center gap-3"
-          >
-            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted ${stat.color}`}>
-              <stat.icon className="h-5 w-5" />
+      <div className="grid grid-cols-2 gap-4 mb-10 md:grid-cols-4">
+        {stats.map((s, i) => (
+          <div key={s.label} className="p-6 border rounded-3xl bg-card flex flex-col gap-3 shadow-sm">
+            <div className={`h-12 w-12 rounded-2xl bg-muted flex items-center justify-center ${s.color}`}>
+              <s.icon size={24} />
             </div>
             <div>
-              <p className="font-mono text-xl font-bold text-foreground">{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="text-3xl font-black leading-none">{s.value}</p>
+              <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mt-2">{s.label}</p>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
-      {/* Quick actions */}
-      <div className="mb-8 grid gap-4 md:grid-cols-2">
-        <Link
-          to="/gigs"
-          className="gig-card flex items-center justify-between group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <Briefcase className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-display text-sm font-bold text-foreground">
-                {isStudent ? "Browse Open Gigs" : "Post a New Gig"}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {isStudent ? `${mockGigs.filter((g) => g.status === "Open").length} gigs available` : "Create a new opportunity"}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-        </Link>
-
-        <Link
-          to={isStudent ? "/my-applications" : "/my-gigs"}
-          className="gig-card flex items-center justify-between group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
-              <FileText className="h-5 w-5 text-accent" />
-            </div>
-            <div>
-              <h3 className="font-display text-sm font-bold text-foreground">
-                {isStudent ? "My Applications" : "Review Applications"}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {isStudent
-                  ? `${myApps.filter((a) => a.status === "Pending").length} pending`
-                  : `${gigsApps.filter((a) => a.status === "Pending").length} awaiting review`}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-        </Link>
-      </div>
-
-      {/* Recent activity */}
-      <div>
-        <h2 className="font-display mb-4 text-lg font-bold text-foreground">Recent Activity</h2>
-        <div className="space-y-3">
-          {(isStudent ? myApps : gigsApps).slice(0, 4).map((app, i) => (
-            <motion.div
-              key={app.id}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="flex items-center justify-between rounded-xl border border-border bg-card p-4"
+      <h2 className="text-xl font-bold mb-6">Recent Activity</h2>
+      <div className="space-y-4">
+        {displayItems.length > 0 ? (
+          displayItems.slice(0, 5).map((item, i) => (
+            <motion.div 
+              key={item.id || i}
+              initial={{ opacity: 0, x: -10 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              onClick={() => handleCardClick(item)}
+              className="p-5 border rounded-2xl flex justify-between items-center bg-card hover:border-primary hover:shadow-md cursor-pointer transition-all active:scale-[0.98]"
             >
-              <div className="flex-1">
-                <h4 className="text-sm font-semibold text-foreground">
-                  {isStudent ? app.gigTitle : app.studentName}
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  {isStudent ? `Applied ${app.appliedAt}` : `${app.studentDept} · Applied ${app.appliedAt}`}
-                </p>
+              <div className="flex items-center gap-4">
+                 <div className="h-10 w-10 rounded-full bg-primary/5 flex items-center justify-center text-primary">
+                    <Briefcase size={18} />
+                 </div>
+                 <div>
+                   <p className="font-bold text-base text-foreground">
+                     {item.job?.title || item.title || "Untitled Gig"}
+                   </p>
+                   <p className="text-xs text-muted-foreground mt-1">
+                     {new Date(item.createdAt || Date.now()).toLocaleDateString()} · {item.type || "Campus Gig"}
+                   </p>
+                 </div>
               </div>
+              
               <div className="flex items-center gap-3">
-                <AIScoreBadge score={app.matchScore} size="sm" showLabel={false} />
-                <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                  app.status === "Accepted" ? "bg-accent/10 text-accent"
-                  : app.status === "Rejected" ? "bg-destructive/10 text-destructive"
-                  : app.status === "Completed" ? "bg-primary/10 text-primary"
+                <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter ${
+                  item.status?.toUpperCase() === "ACCEPTED" 
+                  ? "bg-emerald-100 text-emerald-600"
                   : "bg-secondary text-muted-foreground"
                 }`}>
-                  {app.status}
+                  {item.status?.toUpperCase() || "PENDING"}
                 </span>
+                <ChevronRight size={18} className="text-muted-foreground" />
               </div>
             </motion.div>
-          ))}
-        </div>
+          ))
+        ) : (
+          <div className="text-center py-16 border-2 border-dashed rounded-3xl text-muted-foreground">
+            <AlertCircle className="mx-auto mb-2 opacity-20" size={40} />
+            <p className="font-medium text-lg">No activity found yet.</p>
+          </div>
+        )}
       </div>
     </div>
   );

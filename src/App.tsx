@@ -13,6 +13,7 @@ import GigDetail from "./pages/GigDetail";
 import MyApplications from "./pages/MyApplications";
 import MyGigs from "./pages/MyGigs";
 import DigitalPass from "./pages/DigitalPass";
+import Postgig from "./pages/Postgig";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/" element={<CampusHome />} />
             <Route path="/login" element={<CampusLogin />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/post-gig" element={<Postgig />} />
             <Route path="/gigs" element={<GigBoard />} />
             <Route path="/gigs/:id" element={<GigDetail />} />
             <Route path="/my-applications" element={<MyApplications />} />

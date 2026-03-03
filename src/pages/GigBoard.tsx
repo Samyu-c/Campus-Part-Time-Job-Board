@@ -1,76 +1,43 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Search, Filter, Briefcase } from "lucide-react";
-import { mockGigs, Gig } from "@/data/campusData";
-import { GigCard } from "@/components/GigCard";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import { MapPin, Clock, ArrowRight } from "lucide-react";
 
-const gigTypes = ["All", "Research", "Club", "Admin", "Tutoring", "Event"];
+export default function GigBoard() {
+  const [gigs, setGigs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const GigBoard = () => {
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All");
+  useEffect(() => {
+    axios.get("http://localhost:5001/api/jobs")
+      .then(res => setGigs(Array.isArray(res.data.jobs) ? res.data.jobs : []))
+      .catch(err => console.error("Board error:", err))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const filtered = mockGigs.filter((g) => {
-    const matchSearch = g.title.toLowerCase().includes(search.toLowerCase()) ||
-      g.description.toLowerCase().includes(search.toLowerCase()) ||
-      g.skillsRequired.some((s) => s.toLowerCase().includes(search.toLowerCase()));
-    const matchType = typeFilter === "All" || g.type === typeFilter;
-    return matchSearch && matchType;
-  });
+  if (loading) return <div className="p-20 text-center">Loading Campus Gigs...</div>;
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="mb-2 flex items-center gap-2">
-          <Briefcase className="h-6 w-6 text-primary" />
-          <h1 className="font-display text-2xl font-bold text-foreground">Gig Board</h1>
-        </div>
-        <p className="mb-6 text-sm text-muted-foreground">Find opportunities across campus</p>
-      </motion.div>
-
-      {/* Filters */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search gigs, skills..."
-            className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {gigTypes.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                typeFilter === t
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-primary/10 hover:text-primary"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((gig, i) => (
-          <GigCard key={gig.id} gig={gig} index={i} />
+    <div className="container mx-auto p-6 max-w-6xl">
+      <h1 className="text-3xl font-bold mb-8">Campus Gig Board</h1>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {gigs.map((gig) => (
+          <div key={gig.id} className="bg-card border rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">
+            <h3 className="text-xl font-bold mb-2">{gig.title}</h3>
+            <p className="text-muted-foreground text-sm line-clamp-2 mb-4">{gig.description}</p>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground mb-6">
+              <span className="flex items-center gap-1"><MapPin size={14}/> {gig.location}</span>
+              <span className="flex items-center gap-1"><Clock size={14}/> {new Date(gig.createdAt).toLocaleDateString()}</span>
+            </div>
+            {/* THIS LINK MUST MATCH YOUR ROUTE IN APP.TSX */}
+           <Link 
+  to={`/gigs/${gig.id}`}  // Added the 's' to match App.tsx
+  className="w-full bg-primary text-white py-2 rounded-xl flex items-center justify-center gap-2 font-semibold hover:opacity-90"
+>
+  View Details <ArrowRight size={16}/>
+</Link>
+          </div>
         ))}
       </div>
-
-      {filtered.length === 0 && (
-        <div className="py-16 text-center">
-          <Briefcase className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-          <p className="text-muted-foreground">No gigs found matching your search.</p>
-        </div>
-      )}
     </div>
   );
-};
-
-export default GigBoard;
+}
